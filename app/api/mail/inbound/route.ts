@@ -16,9 +16,15 @@ function parseLocalPart(address: string): string | null {
 
 export async function POST(request: NextRequest) {
   try {
-    const headerSecret = request.headers.get("x-inbound-secret");
-    const urlSecret = new URL(request.url).searchParams.get("secret");
-    const matchesSecret = !!process.env.INBOUND_SECRET && (headerSecret === process.env.INBOUND_SECRET || urlSecret === process.env.INBOUND_SECRET);
+    if (!process.env.INBOUND_SECRET) {
+      return NextResponse.json({ error: "server_misconfigured_missing_secret" }, { status: 500 });
+    }
+    const envSecret = String(process.env.INBOUND_SECRET).trim();
+    const headerSecretRaw = request.headers.get("x-inbound-secret");
+    const urlSecretRaw = new URL(request.url).searchParams.get("secret");
+    const headerSecret = headerSecretRaw ? headerSecretRaw.trim() : null;
+    const urlSecret = urlSecretRaw ? urlSecretRaw.trim() : null;
+    const matchesSecret = headerSecret === envSecret || urlSecret === envSecret;
     if (!matchesSecret) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
