@@ -1,0 +1,18 @@
+-- AlterTable
+ALTER TABLE "EscortProfile" ADD COLUMN     "age" INTEGER,
+ADD COLUMN     "bodyType" TEXT,
+ADD COLUMN     "breastSize" TEXT,
+ADD COLUMN     "breastType" TEXT,
+ADD COLUMN     "clothingSize" TEXT,
+ADD COLUMN     "clothingStyle" TEXT,
+ADD COLUMN     "hairColor" TEXT,
+ADD COLUMN     "hairLength" TEXT,
+ADD COLUMN     "heightCm" INTEGER,
+ADD COLUMN     "intimateArea" TEXT,
+ADD COLUMN     "languages" TEXT[],
+ADD COLUMN     "nationality" TEXT,
+ADD COLUMN     "piercings" TEXT,
+ADD COLUMN     "shoeSize" TEXT,
+ADD COLUMN     "slogan" TEXT,
+ADD COLUMN     "tattoos" TEXT,
+ADD COLUMN     "weightKg" INTEGER;

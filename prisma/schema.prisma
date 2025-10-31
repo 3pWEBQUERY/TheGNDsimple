@@ -1,0 +1,89 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  username  String     @unique
+  password  String
+  avatar    String?
+  theme     Theme      @default(DARK)
+  isProfilePublic Boolean @default(true)
+  useGridView Boolean  @default(false)
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret String?
+  isEscort  Boolean    @default(false)
+  escortProfile EscortProfile?
+  profileBio String?
+  profileGallery String[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+enum Theme {
+  LIGHT
+  DARK
+}
+
+model EscortProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  active    Boolean  @default(true)
+  bio       String?
+  description String?
+  gallery   String[]
+  services  Json?
+  // Contact fields (dynamic)
+  whatsapp  String?
+  telegram  String?
+  signal    String?
+  viber     String?
+  wechat    String?
+  line      String?
+  snapchat  String?
+  instagram String?
+  twitter   String?
+  onlyfans  String?
+  website   String?
+  // Location fields (dynamic)
+  address   String?
+  city      String?
+  postalCode String?
+  state     String?
+  country   String?
+  latitude  Float?
+  longitude Float?
+  incall    Boolean @default(false)
+  outcall   Boolean @default(false)
+  travelAvailable Boolean @default(false)
+  tags      String[]
+  slogan    String?
+  age       Int?
+  nationality String?
+  languages String[]
+  heightCm  Int?
+  weightKg  Int?
+  bodyType  String?
+  hairColor String?
+  hairLength String?
+  breastType String?
+  breastSize String?
+  intimateArea String?
+  piercings String?
+  tattoos   String?
+  clothingStyle String?
+  clothingSize String?
+  shoeSize  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
