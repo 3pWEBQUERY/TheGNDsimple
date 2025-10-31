@@ -16,8 +16,10 @@ function parseLocalPart(address: string): string | null {
 
 export async function POST(request: NextRequest) {
   try {
-    const secret = request.headers.get("x-inbound-secret");
-    if (!process.env.INBOUND_SECRET || secret !== process.env.INBOUND_SECRET) {
+    const headerSecret = request.headers.get("x-inbound-secret");
+    const urlSecret = new URL(request.url).searchParams.get("secret");
+    const matchesSecret = !!process.env.INBOUND_SECRET && (headerSecret === process.env.INBOUND_SECRET || urlSecret === process.env.INBOUND_SECRET);
+    if (!matchesSecret) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
@@ -34,7 +36,8 @@ export async function POST(request: NextRequest) {
     const from = String(payload.from || "");
     if (!to || !from) return NextResponse.json({ error: "missing_to_from" }, { status: 400 });
 
-    const local = parseLocalPart(to);
+    let local = parseLocalPart(to);
+    if (local) local = local.toLowerCase();
     if (!local) return NextResponse.json({ error: "invalid_to" }, { status: 400 });
 
     const user = await (prisma as any).user.findFirst({ where: { internalEmailHandle: local } });

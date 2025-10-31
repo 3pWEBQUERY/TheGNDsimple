@@ -5,7 +5,7 @@ import TopBar from "@/components/TopBar";
 import Sidebar from "@/components/Sidebar";
 import Footer from "@/components/Footer";
 import { useTranslation } from "react-i18next";
-import { ReloadIcon, PaperPlaneIcon, ArchiveIcon, EnvelopeOpenIcon } from "@radix-ui/react-icons";
+import { ReloadIcon, PaperPlaneIcon, ArchiveIcon, EnvelopeOpenIcon, HamburgerMenuIcon, Pencil2Icon } from "@radix-ui/react-icons";
 
 const MAIL_DOMAIN = "thegnd.io";
 const HANDLE_REGEX = /^[a-z0-9]{3,20}$/;
@@ -57,6 +57,12 @@ export default function MailPage() {
   const [filterUnread, setFilterUnread] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [reply, setReply] = React.useState("");
+  const [folder, setFolder] = React.useState<"inbox" | "sent" | "archive">("inbox");
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+  const [composeOpen, setComposeOpen] = React.useState(false);
+  const [composeTo, setComposeTo] = React.useState("");
+  const [composeSubject, setComposeSubject] = React.useState("");
+  const [composeBody, setComposeBody] = React.useState("");
 
   React.useEffect(() => {
     try {
@@ -86,7 +92,7 @@ export default function MailPage() {
     if (!userId || !verified) return;
     setLoadingList(true);
     try {
-      const params = new URLSearchParams({ userId, page: "1", pageSize: "50" });
+      const params = new URLSearchParams({ userId, page: "1", pageSize: "50", folder });
       if (filterUnread) params.set("unreadOnly", "true");
       if (search) params.set("q", search);
       const res = await fetch(`/api/mail/list?${params.toString()}`);
@@ -103,7 +109,7 @@ export default function MailPage() {
     finally {
       setLoadingList(false);
     }
-  }, [userId, verified, filterUnread, search, selectedId]);
+  }, [userId, verified, filterUnread, search, selectedId, folder]);
 
   React.useEffect(() => {
     loadMessages();
@@ -133,6 +139,29 @@ export default function MailPage() {
     } catch {}
     finally {
       setLoadingMsg(false);
+    }
+  };
+
+  const sendNew = async () => {
+    if (!userId) return;
+    if (!composeTo || (!composeBody && !composeSubject)) return;
+    setSaving("send");
+    setMessage(null);
+    try {
+      const res = await fetch("/api/mail/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, to: composeTo, subject: composeSubject, text: composeBody }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "send_failed");
+      setMessage(t("mail.sent"));
+      setComposeOpen(false);
+      setComposeTo("");
+      setComposeSubject("");
+      setComposeBody("");
+      setFolder("sent");
+      await loadMessages();
+    } catch (e: any) {
+      setMessage(t("mail.send_error"));
+    } finally {
+      setSaving(null);
     }
   };
 
@@ -244,10 +273,24 @@ export default function MailPage() {
       <Box style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "var(--gray-1)", color: "var(--gray-12)" }}>
         <Box className="mx-auto w-full max-w-7xl px-4 py-6" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           <TopBar />
-          <div className={`flex-1 grid gap-6 grid-cols-1 md:grid-cols-[260px_1fr]`}>
-            <Sidebar appearance={appearance} onAppearanceChange={(v) => setAppearance(v ? "dark" : "light")} />
+          <div className={`flex-1 grid gap-6 grid-cols-1 ${sidebarCollapsed ? "md:grid-cols-1" : "md:grid-cols-[260px_1fr]"}`}>
+            {!sidebarCollapsed && (
+              <Sidebar appearance={appearance} onAppearanceChange={(v) => setAppearance(v ? "dark" : "light")} />
+            )}
             <Card size="3">
-              <Heading size="6" mb="4">{t("mail.title")}</Heading>
+              <Flex align="center" justify="between" mb="4">
+                <Flex align="center" gap="3">
+                  <IconButton variant="soft" onClick={() => setSidebarCollapsed((v) => !v)} title="Toggle sidebar">
+                    <HamburgerMenuIcon />
+                  </IconButton>
+                  <Heading size="6">{t("mail.title")}</Heading>
+                </Flex>
+                {verified && (
+                  <Button variant="soft" onClick={() => { setComposeOpen(true); setSelectedId(null); setSelected(null); }}>
+                    <Pencil2Icon /> {t("mail.new_message") || "New"}
+                  </Button>
+                )}
+              </Flex>
 
               <Box className="rounded-md p-3" style={{ background: "var(--gray-3)" }}>
                 <Flex direction="column" gap="2">
@@ -299,9 +342,14 @@ export default function MailPage() {
                   <Separator my="4" />
                   <Box style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 16, minHeight: 520 }}>
                     <Card size="2" style={{ background: "var(--gray-2)", height: "100%" }}>
+                      <Flex gap="2" mb="3">
+                        <Button variant={folder === "inbox" ? "solid" : "soft"} onClick={() => { setFolder("inbox"); setSelectedId(null); setSelected(null); }}>{t("mail.inbox")}</Button>
+                        <Button variant={folder === "sent" ? "solid" : "soft"} onClick={() => { setFolder("sent"); setSelectedId(null); setSelected(null); }}>{t("mail.sent")}</Button>
+                        <Button variant={folder === "archive" ? "solid" : "soft"} onClick={() => { setFolder("archive"); setSelectedId(null); setSelected(null); }}>{t("mail.archive")}</Button>
+                      </Flex>
                       <Flex align="center" justify="between" mb="3">
                         <Flex align="center" gap="3">
-                          <Text weight="bold">{t("mail.inbox")}</Text>
+                          <Text weight="bold">{t(folder === "sent" ? "mail.sent" : folder === "archive" ? "mail.archive" : "mail.inbox")}</Text>
                           <Badge color="yellow">{unreadCount}</Badge>
                         </Flex>
                         <IconButton variant="ghost" onClick={refresh}>
@@ -339,7 +387,28 @@ export default function MailPage() {
                     </Card>
 
                     <Card size="2" style={{ background: "var(--gray-2)", height: "100%" }}>
-                      {loadingMsg ? (
+                      {composeOpen ? (
+                        <Flex direction="column" gap="3" style={{ height: "100%" }}>
+                          <Heading size="4">{t("mail.new_message") || "New message"}</Heading>
+                          <Flex direction="column" gap="2">
+                            <Text size="2">{t("mail.to")}</Text>
+                            <TextField.Root placeholder="name@example.com" value={composeTo} onChange={(e) => setComposeTo(e.target.value)} />
+                          </Flex>
+                          <Flex direction="column" gap="2">
+                            <Text size="2">{t("mail.subject")}</Text>
+                            <TextField.Root placeholder={t("mail.subject") || ""} value={composeSubject} onChange={(e) => setComposeSubject(e.target.value)} />
+                          </Flex>
+                          <TextArea rows={12} placeholder="Message..." value={composeBody} onChange={(e) => setComposeBody(e.target.value)} />
+                          <Flex align="center" gap="2" justify="end">
+                            <Button variant="soft" onClick={() => { setComposeOpen(false); }}>
+                              {t("mail.discard")}
+                            </Button>
+                            <Button onClick={sendNew} disabled={saving === "send" || !composeTo}>
+                              {saving === "send" ? t("mail.sending") : (<><PaperPlaneIcon /> {t("mail.send")}</>)}
+                            </Button>
+                          </Flex>
+                        </Flex>
+                      ) : loadingMsg ? (
                         <Flex align="center" justify="center" style={{ minHeight: 200 }}>
                           <Text>{t("common.saving")}</Text>
                         </Flex>

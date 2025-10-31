@@ -59,6 +59,7 @@ model MailMessage {
   date       DateTime      @default(now())
   unread     Boolean       @default(true)
   archived   Boolean       @default(false)
+  draft      Boolean       @default(false)
   direction  MailDirection
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
