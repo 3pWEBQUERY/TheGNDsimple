@@ -134,10 +134,17 @@ export default function Sidebar({ appearance, onAppearanceChange, onSettingsOpen
           <Button
             variant="ghost"
             size="3"
-            style={{ width: "100%", justifyContent: "flex-start", padding: "8px 12px" }}
+            style={{
+              width: "100%",
+              justifyContent: "flex-start",
+              padding: "8px 12px",
+              opacity: pathname === "/mail" ? 1 : 0.7,
+              fontWeight: pathname === "/mail" ? "bold" : "normal",
+            }}
             className="!hover:bg-slate-700 dark:!hover:bg-slate-600 transition-colors"
+            onClick={() => router.push("/mail")}
           >
-            <EnvelopeClosedIcon /> {t("nav.messages")}
+            <EnvelopeClosedIcon /> {t("nav.mailbox")}
           </Button>
           <Button
             variant="ghost"

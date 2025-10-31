@@ -25,6 +25,12 @@ model User {
   escortProfile EscortProfile?
   profileBio String?
   profileGallery String[]
+  // thegnd.io mailbox
+  internalEmailHandle String? @unique
+  internalEmailVerified Boolean @default(false)
+  internalEmailVerificationToken String?
+  internalEmailVerifiedAt DateTime?
+  mailMessages MailMessage[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
@@ -32,6 +38,32 @@ model User {
 enum Theme {
   LIGHT
   DARK
+}
+
+enum MailDirection {
+  INBOUND
+  OUTBOUND
+}
+
+model MailMessage {
+  id         String        @id @default(cuid())
+  userId     String
+  user       User          @relation(fields: [userId], references: [id])
+  messageId  String?
+  from       String
+  to         String
+  subject    String?
+  snippet    String?
+  text       String?
+  html       String?
+  date       DateTime      @default(now())
+  unread     Boolean       @default(true)
+  archived   Boolean       @default(false)
+  direction  MailDirection
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([userId, date])
 }
 
 model EscortProfile {
